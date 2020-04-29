@@ -31,6 +31,9 @@ RCT_EXPORT_METHOD(setVisitorInfo:(NSDictionary *)options) {
 RCT_EXPORT_METHOD(startChat:(NSDictionary *)options) {
   [self setVisitorInfo:options];
 
+  if (options[@"hideOverlay"]) {
+    [[[ZDCChat instance] overlay] setEnabled:NO];
+  }
   dispatch_sync(dispatch_get_main_queue(), ^{
     [ZDCChat startChat:^(ZDCConfig *config) {
       if (options[@"department"]) {
@@ -40,10 +43,11 @@ RCT_EXPORT_METHOD(startChat:(NSDictionary *)options) {
         config.tags = options[@"tags"];
       }
       config.preChatDataRequirements.name       = ZDCPreChatDataRequired;
-      config.preChatDataRequirements.email      = options[@"emailNotRequired"] ? ZDCPreChatDataNotRequired : ZDCPreChatDataRequired;
-      config.preChatDataRequirements.phone      = options[@"phoneNotRequired"] ? ZDCPreChatDataNotRequired : ZDCPreChatDataRequired;
-      config.preChatDataRequirements.department = options[@"departmentNotRequired"] ? ZDCPreChatDataNotRequired : ZDCPreChatDataRequiredEditable;
-      config.preChatDataRequirements.message    = options[@"messageNotRequired"] ? ZDCPreChatDataNotRequired : ZDCPreChatDataRequired;
+      config.preChatDataRequirements.department = ZDCPreChatDataRequiredEditable;
+      config.preChatDataRequirements.email      = ZDCPreChatDataRequired;
+      config.preChatDataRequirements.phone      = ZDCPreChatDataRequired;
+      config.preChatDataRequirements.message    = ZDCPreChatDataRequired;
+      config.emailTranscriptAction              = ZDCEmailTranscriptActionNeverSend;
     }];
   });
 }

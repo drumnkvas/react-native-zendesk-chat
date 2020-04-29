@@ -12,8 +12,11 @@ import com.zopim.android.sdk.api.ZopimChat;
 import com.zopim.android.sdk.prechat.PreChatForm;
 import com.zopim.android.sdk.model.VisitorInfo;
 import com.zopim.android.sdk.prechat.ZopimChatActivity;
+import com.zopim.android.sdk.prechat.EmailTranscript;
 
 import java.lang.String;
+import java.util.ArrayList;
+import java.util.Objects;
 
 public class RNZendeskChatModule extends ReactContextBaseJavaModule {
     private ReactContext mReactContext;
@@ -49,24 +52,40 @@ public class RNZendeskChatModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void init(String key) {
-        PreChatForm defaultPreChat = new PreChatForm.Builder()
-                .name(PreChatForm.Field.REQUIRED)
-                .email(PreChatForm.Field.REQUIRED)
-                .phoneNumber(PreChatForm.Field.REQUIRED)
-                .department(PreChatForm.Field.REQUIRED_EDITABLE)
-                .message(PreChatForm.Field.REQUIRED)
-                .build();
         ZopimChat.init(key)
-            .preChatForm(defaultPreChat)
             .build();
     }
 
     @ReactMethod
     public void startChat(ReadableMap options) {
         setVisitorInfo(options);
-        Activity activity = getCurrentActivity();
-        if (activity != null) {
-            activity.startActivity(new Intent(mReactContext, ZopimChatActivity.class));
+
+        PreChatForm preChatForm = new PreChatForm.Builder()
+            .name(PreChatForm.Field.REQUIRED)
+            .department(PreChatForm.Field.REQUIRED_EDITABLE)
+            .email(PreChatForm.Field.REQUIRED)
+            .phoneNumber(PreChatForm.Field.REQUIRED)
+            .message(PreChatForm.Field.REQUIRED)
+            .build();
+
+        ZopimChat.SessionConfig config = new ZopimChat.SessionConfig()
+            .preChatForm(preChatForm)
+            .emailTranscript(EmailTranscript.DISABLED);
+
+        if (options.hasKey("department")) {
+            config.department(options.getString("department"));
         }
+        if (options.hasKey("tags")) {
+            ArrayList<Object> tags = options.getArray("tags").toArrayList();
+            ArrayList<String> strings = new ArrayList<String>(tags.size());
+            for (Object tag : tags) {
+                String string = Objects.toString(tag, null);
+                if (string != null) {
+                    strings.add(string);
+                }
+            }
+            config.tags(strings.toArray(new String[tags.size()]));
+        }
+        ZopimChatActivity.startActivity(getCurrentActivity(), config);
     }
 }
