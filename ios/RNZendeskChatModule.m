@@ -30,10 +30,7 @@ RCT_EXPORT_METHOD(setVisitorInfo:(NSDictionary *)options) {
 
 RCT_EXPORT_METHOD(startChat:(NSDictionary *)options) {
   [self setVisitorInfo:options];
-
-  if (options[@"hideOverlay"]) {
-    [[[ZDCChat instance] overlay] setEnabled:NO];
-  }
+  [[[ZDCChat instance] overlay] setEnabled:[options[@"hideOverlay"] boolValue] || YES];
   dispatch_sync(dispatch_get_main_queue(), ^{
     [ZDCChat startChat:^(ZDCConfig *config) {
       if (options[@"department"]) {
