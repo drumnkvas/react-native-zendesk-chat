@@ -76,11 +76,11 @@ public class RNZendeskChatModule extends ReactContextBaseJavaModule {
             @Override
             protected void update(ChattingStatus nextChatStatus) {
                 try {
-                    Log.i("OBESERVER: CHECK CHAT STATUS = %s", nextChatStatus.name());
+                    // Log.i("OBESERVER: CHECK CHAT STATUS = %s", nextChatStatus.name());
                     sendEvent(mReactContext, "chatStatusChanged", nextChatStatus.name());
                     chatStatus = nextChatStatus;
                 } catch (IllegalViewOperationException e) {
-                    Log.i("OBESERVER: STATUS CALLBACK FAILED", "");
+                    // Log.i("OBESERVER: STATUS CALLBACK FAILED", "");
                 }
             }
         });
@@ -92,13 +92,13 @@ public class RNZendeskChatModule extends ReactContextBaseJavaModule {
                 try {
                     sendEvent(mReactContext, "chatMessagesUpdated", String.valueOf(chatItems.size()));
 
-                    Log.i("OBESERVER: CHAT UPDATED", "");
+                    // Log.i("OBESERVER: CHAT UPDATED", "");
                     for (Map.Entry<String, RowItem> entry: chatItems.entrySet()) {
                         RowItem chatRow = entry.getValue();
-                        Log.i("UPDATED CHAT ITEMS", "Key: " + entry.getKey() + ". Value: " + chatRow.getType().name() + " STRING: " + chatRow.toString());
+                        // Log.i("UPDATED CHAT ITEMS", "Key: " + entry.getKey() + ". Value: " + chatRow.getType().name() + " STRING: " + chatRow.toString());
                     }
                 } catch (IllegalViewOperationException e) {
-                    Log.i("OBESERVER: STATUS CALLBACK FAILED", "");
+                    // Log.i("OBESERVER: STATUS CALLBACK FAILED", "");
                 }
             }
         };
@@ -107,19 +107,15 @@ public class RNZendeskChatModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void setPushToken(String token) {
-        // ZopimChat.setPushToken(token);
-
         ZopimChatApi.setPushToken(token);
-        Log.i("SET PUSH TOKEN ON ANDROID 1 = %s", token);
+        // Log.i("SET PUSH TOKEN ON ANDROID 1 = %s", token);
     }
 
     @ReactMethod
     public String getChattingStatus() {
-        Log.i("CHECK CHAT STATUS", "NOW");
         ChattingStatus chatStatus = ZopimChatApi.getDataSource().getChattingStatus();
-        Log.i("CHECK CHAT STATUS = %s", chatStatus.name());
-
-        return "WHAT A STATUS";
+        // Log.i("CHECK CHAT STATUS = %s", chatStatus.name());
+        return chatStatus.name();
     }
 
     @ReactMethod
@@ -154,31 +150,7 @@ public class RNZendeskChatModule extends ReactContextBaseJavaModule {
             }
             config.tags(strings.toArray(new String[tags.size()]));
         }
-
-        // Chat chat = ZopimChat.resume(this);
-        // Boolean hasEnded = chat.hasEnded();
-        // Log.i("HAS CHAT ENDED %b", "" + hasEnded);
-
-        Log.i("PUSH TOKEN FOR CHAT", "" + ZopimChatApi.getPushToken());
-
-        // if (chatStatus == ChattingStatus.CHATTING) {
-            // Log.i("ZendeskChat", "Resume");
-            // ZopimChat.resume(currentActivity);
-            // return;
-        // }
-
-        Log.i("ZendeskChat", "Start new");
         ZopimChatActivity.startActivity(getCurrentActivity(), config);
-
-        // config.build(currentActivity);
-
-
-
-        // ZopimChatActivity.startActivity(mReactContext, config);
-        // Activity activity = getCurrentActivity();
-        // if (activity != null) {
-        //    activity.startActivity(new Intent(mReactContext, ZopimChatActivity.class));
-        // }
     }
 
     private void sendEvent(ReactContext reactContext, String eventName, String params) {
