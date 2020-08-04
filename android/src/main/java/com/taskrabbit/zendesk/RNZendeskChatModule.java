@@ -2,17 +2,33 @@ package com.taskrabbit.zendesk;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.util.Log;
+import java.util.Map;
+import java.util.TreeMap;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.ReadableMap;
+import com.facebook.react.bridge.Callback;
+import com.facebook.react.uimanager.IllegalViewOperationException;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
+import com.facebook.react.bridge.Arguments;
+
+// import com.zendesk.logger.Logger;
 import com.zopim.android.sdk.api.ZopimChat;
+import com.zopim.android.sdk.api.Chat;
+import com.zopim.android.sdk.api.ZopimChatApi;
 import com.zopim.android.sdk.prechat.PreChatForm;
 import com.zopim.android.sdk.model.VisitorInfo;
 import com.zopim.android.sdk.prechat.ZopimChatActivity;
 import com.zopim.android.sdk.prechat.EmailTranscript;
+import com.zopim.android.sdk.model.ChattingStatus;
+import com.zopim.android.sdk.model.items.RowItem;
+import com.zopim.android.sdk.data.observers.ChattingStatusObserver;
+import com.zopim.android.sdk.data.observers.ChatItemsObserver;
 
 import java.lang.String;
 import java.util.ArrayList;
@@ -20,6 +36,7 @@ import java.util.Objects;
 
 public class RNZendeskChatModule extends ReactContextBaseJavaModule {
     private ReactContext mReactContext;
+    public ChattingStatus chatStatus;
 
     public RNZendeskChatModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -52,12 +69,63 @@ public class RNZendeskChatModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void init(String key) {
-        ZopimChat.init(key)
-            .build();
+        ZopimChat.init(key);
+            // .build();
+
+        ZopimChatApi.getDataSource().addChattingStatusObserver(new ChattingStatusObserver() {
+            @Override
+            protected void update(ChattingStatus nextChatStatus) {
+                try {
+                    Log.i("OBESERVER: CHECK CHAT STATUS = %s", nextChatStatus.name());
+                    sendEvent(mReactContext, "chatStatusChanged", nextChatStatus.name());
+                    chatStatus = nextChatStatus;
+                } catch (IllegalViewOperationException e) {
+                    Log.i("OBESERVER: STATUS CALLBACK FAILED", "");
+                }
+            }
+        });
+
+        // listen for chat log events
+        ChatItemsObserver chatItemsObserver = new ChatItemsObserver(mReactContext) {
+            @Override
+            protected void updateChatItems(final TreeMap<String, RowItem> chatItems) {
+                try {
+                    sendEvent(mReactContext, "chatMessagesUpdated", String.valueOf(chatItems.size()));
+
+                    Log.i("OBESERVER: CHAT UPDATED", "");
+                    for (Map.Entry<String, RowItem> entry: chatItems.entrySet()) {
+                        RowItem chatRow = entry.getValue();
+                        Log.i("UPDATED CHAT ITEMS", "Key: " + entry.getKey() + ". Value: " + chatRow.getType().name() + " STRING: " + chatRow.toString());
+                    }
+                } catch (IllegalViewOperationException e) {
+                    Log.i("OBESERVER: STATUS CALLBACK FAILED", "");
+                }
+            }
+        };
+        ZopimChatApi.getDataSource().addChatLogObserver(chatItemsObserver);
+    }
+
+    @ReactMethod
+    public void setPushToken(String token) {
+        // ZopimChat.setPushToken(token);
+
+        ZopimChatApi.setPushToken(token);
+        Log.i("SET PUSH TOKEN ON ANDROID 1 = %s", token);
+    }
+
+    @ReactMethod
+    public String getChattingStatus() {
+        Log.i("CHECK CHAT STATUS", "NOW");
+        ChattingStatus chatStatus = ZopimChatApi.getDataSource().getChattingStatus();
+        Log.i("CHECK CHAT STATUS = %s", chatStatus.name());
+
+        return "WHAT A STATUS";
     }
 
     @ReactMethod
     public void startChat(ReadableMap options) {
+        AppCompatActivity currentActivity = (AppCompatActivity) getCurrentActivity();
+
         setVisitorInfo(options);
 
         PreChatForm preChatForm = new PreChatForm.Builder()
@@ -86,6 +154,38 @@ public class RNZendeskChatModule extends ReactContextBaseJavaModule {
             }
             config.tags(strings.toArray(new String[tags.size()]));
         }
+
+        // Chat chat = ZopimChat.resume(this);
+        // Boolean hasEnded = chat.hasEnded();
+        // Log.i("HAS CHAT ENDED %b", "" + hasEnded);
+
+        Log.i("PUSH TOKEN FOR CHAT", "" + ZopimChatApi.getPushToken());
+
+        // if (chatStatus == ChattingStatus.CHATTING) {
+            // Log.i("ZendeskChat", "Resume");
+            // ZopimChat.resume(currentActivity);
+            // return;
+        // }
+
+        Log.i("ZendeskChat", "Start new");
         ZopimChatActivity.startActivity(getCurrentActivity(), config);
+
+        // config.build(currentActivity);
+
+
+
+        // ZopimChatActivity.startActivity(mReactContext, config);
+        // Activity activity = getCurrentActivity();
+        // if (activity != null) {
+        //    activity.startActivity(new Intent(mReactContext, ZopimChatActivity.class));
+        // }
     }
+
+    private void sendEvent(ReactContext reactContext, String eventName, String params) {
+      mReactContext
+          .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+          .emit(eventName, params);
+    }
+
+
 }
